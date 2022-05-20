@@ -6,7 +6,7 @@
 ![](https://visitor-badge.glitch.me/badge?page_id=WSL33099)  
 
 <!--
-** WSL33099/Other** is a ✨ _special_ ✨ repository because its `Readme.md` (this file) appears on your GitHub profile.
+** WSL33099** is a ✨ _special_ ✨ repository because its `Readme.md` (this file) appears on your GitHub profile.
 
 Here are some ideas to get you started:
 
