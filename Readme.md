@@ -1,12 +1,12 @@
 ### Hi 👋 Welcome to My Github Page !✨
 #### Tg Channel：https://t.me/QuantX 
-#### [↑ Expire on 2022.12.31]
+#### [↑ Expire on 2099.12.31]
 
 [![Github Badge](https://img.shields.io/badge/-Github-232323?style=flat-square&logo=Github&logoColor=white&link=https://github.com/WSL33099)](https://github.com/WSL33099)
-![](https://visitor-badge.glitch.me/badge?page_id=WSL33099. WSL33099)  
+![](https://visitor-badge.glitch.me/badge?page_id=WSL33099. QuantumultX)  
 
 <!--
-** WSL33099/other** is a ✨ _special_ ✨ repository because its `Readme.md` (this file) appears on your GitHub profile.
+** WSL33099/Other** is a ✨ _special_ ✨ repository because its `Readme.md` (this file) appears on your GitHub profile.
 
 Here are some ideas to get you started:
 
