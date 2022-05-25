@@ -1,233 +1,159 @@
-//
-// 一言
-// 项目地址：https://github.com/im3x/Scriptables
-//
+// Variables used by Scriptable.
+// These must be at the very top of the file. Do not edit.
+// icon-color: purple; icon-glyph: comment-alt;
+// 
+// iOS 桌面组件脚本 @「小件件」
+// 开发说明：请从 Widget 类开始编写，注释请勿修改
+// https://x.im3x.cn
+// 
 
-class Im3xWidget {
-  /**
-   * 初始化
-   * @param arg 外部传递过来的参数
-   */
-  constructor (arg = 'k', loader) {
-    this.arg = arg
-    this.loader = loader
-    this.fileName = module.filename.split('Documents/')[1]
-    this.widgetSize = config.widgetFamily
-  }
-  /**
-   * 渲染组件
-   */
-  async render () {
-    if (this.widgetSize === 'medium') {
-      return await this.renderMedium()
-    } else if (this.widgetSize === 'large') {
-      return await this.renderLarge()
-    } else {
-      return await this.renderSmall()
+// 添加require，是为了vscode中可以正确引入包，以获得自动补全等功能
+if (typeof require === 'undefined') require = importModule
+const { Base } = require("./「小件件」开发环境")
+
+// @组件代码开始
+class Widget extends Base {
+  constructor (arg) {
+    super(arg)
+    this.name = '一言'
+    this.desc = '在茫茫句海中寻找能感动你的句子'
+    this.settings = this.getSettings(true, true)
+    if (this.settings && this.settings['arg']) {
+      this.arg = this.settings['arg']
     }
+    console.log('arg=' + this.arg)
+    // 注册设置
+    this.registerAction('插件设置', this.actionSetting)
   }
 
-  /**
-   * 渲染小尺寸组件
-   */
-  async renderSmall () {
+  async render () {
     let w = new ListWidget()
-    w = await this.renderHeader(w, 'https://txc.gtimg.com/data/285778/2020/1012/f9cf50f08ebb8bd391a7118c8348f5d8.png', '一言')
-    let data = await this.getData()
+    await this.renderHeader(
+      w,
+      'https://txc.gtimg.com/data/285778/2020/1012/f9cf50f08ebb8bd391a7118c8348f5d8.png',
+      '一言'
+    )
+    let data = await this._getData()
     let content = w.addText(data['hitokoto'])
-    content.font = Font.lightSystemFont(14)
-    w.addSpacer(10)
-    let footer = w.addText("—— " + data['from'])
-    footer.font = Font.lightSystemFont(10)
+    content.font = Font.lightSystemFont(16)
+    w.addSpacer()
+    let footer = w.addText(data['from'])
+    footer.font = Font.lightSystemFont(12)
     footer.textOpacity = 0.5
     footer.rightAlignText()
-    if (this.loader) w.url = this.getURIScheme("do", data['hitokoto'])
+    footer.lineLimit = 1
+
+    w.url = this.actionUrl("menus", JSON.stringify(data));
+
     return w
   }
-  /**
-   * 渲染中尺寸组件
-   */
-  async renderMedium () {
-    return await this.renderSmall()
-  }
-  /**
-   * 渲染大尺寸组件
-   */
-  async renderLarge () {
-    return await this.renderSmall()
-  }
 
-  /**
-   * 渲染标题
-   * @param widget 组件对象
-   * @param icon 图标url地址
-   * @param title 标题
-   */
-  async renderHeader (widget, icon, title) {
-    let header = widget.addStack()
-    header.centerAlignContent()
-    let _icon = header.addImage(await this.getImage(icon))
-    _icon.imageSize = new Size(14, 14)
-    _icon.cornerRadius = 4
-    header.addSpacer(10)
-    let _title = header.addText(title)
-    // _title.textColor = Color.white()
-    _title.textOpacity = 0.7
-    _title.font = Font.boldSystemFont(12)
-    widget.addSpacer(15)
-    return widget
-  }
-
-  async getData () {
-    // 句子类型，参考：https://developer.hitokoto.cn/sentence/#%E8%AF%B7%E6%B1%82%E5%8F%82%E6%95%B0
-    // 备注：l 类型无法返回数据，故取消
+  async _getData () {
     let args = 'abcdefghijk'
     const types = this.arg.split('')
                     .filter(c => args.indexOf(c) > -1)
                     .map(c => `c=${c}`)
                     .join('&') || 'c=k'
     let api = `https://v1.hitokoto.cn/?${types}&encode=json`
-    return await this.fetchAPI(api)
+    return await this.httpGet(api)
+  }
+  async actionSetting () {
+    let a = new Alert()
+    a.title = "插件设置"
+    a.message = "桌面组件的个性化设置"
+    a.addAction("句子类型")
+    a.addCancelAction("取消设置")
+    let id = await a.presentSheet()
+    if (id === 0) {
+      return await this.actionSetting1()
+    }
   }
   /**
-   * 获取api数据
-   * @param api api地址
-   * @param json 接口数据是否是 json 格式，如果不是（纯text)，则传递 false
-   * @return 数据 || null
+   * 句子类型设置
    */
-  async fetchAPI (api, json = true) {
-    let data = null
-    const cacheKey = `${this.fileName}_cache`
-    try {
-      let req = new Request(api)
-      data = await (json ? req.loadJSON() : req.loadString())
-    } catch (e) {}
-    // 判断数据是否为空（加载失败）
-    if (!data) {
-      // 判断是否有缓存
-      if (Keychain.contains(cacheKey)) {
-        let cache = Keychain.get(cacheKey)
-        return json ? JSON.parse(cache) : cache
-      } else {
-        // 刷新
-        return null
+  async actionSetting1 () {
+    console.warn('setting--->' + this.arg)
+    // 设置句子类型
+    // 1. 获取本地存储（如果有）
+    let caches = {}
+    if (this.arg) {
+      this.arg.split('').map(a => {
+        caches[a] = true
+      })
+    }
+    let a1 = new Alert()
+    let keys = [
+      ['a',	'动画'],
+      ['b',	'漫画'],
+      ['c',	'游戏'],
+      ['d',	'文学'],
+      ['e',	'原创'],
+      ['g',	'其他'],
+      ['h',	'影视'],
+      ['i',	'诗词'],
+      ['k',	'哲学'],
+      ['j',	'网易云'],
+      ['f',	'来自网络'],
+    ]
+    a1.title = "句子类型"
+    a1.message = "桌面组件显示的语句内容类型"
+    keys.map(k => {
+      let _id = k[0]
+      let _name = k[1]
+      if (caches[_id]) {
+        _name = `✅ ${_name}`
+      }
+      a1.addAction(_name)
+    })
+    a1.addCancelAction("完成设置")
+    let id1 = await a1.presentSheet()
+    if (id1 === -1) return this.saveSettings()
+    console.log(id1)
+    let arg = keys[id1]
+    // 本地存储
+    if (caches[arg[0]]) {
+      // 已经有了，那么就取消
+      caches[arg[0]] = false
+    } else {
+      caches[arg[0]] = true
+    }
+    // 重新获取设置
+    let _caches = []
+    for (let k in caches) {
+      if (caches[k]) {
+        _caches.push(k)
       }
     }
-    // 存储缓存
-    Keychain.set(cacheKey, json ? JSON.stringify(data) : data)
-    return data
-  }
-  /**
-   * 加载远程图片
-   * @param url string 图片地址
-   * @return image
-   */
-  async getImage (url) {
-    try {
-      let req = new Request(url)
-      return await req.loadImage()
-    } catch (e) {
-      let ctx = new DrawContext()
-      ctx.size = new Size(100, 100)
-      ctx.setFillColor(Color.red())
-      ctx.fillRect(new Rect(0, 0, 100, 100))
-      return await ctx.getImage()
-    }
+    this.arg = _caches.join('');
+    this.settings["arg"] = this.arg;
+    // this.saveSettings(false);
+    // console.log('save-setting:' + this.arg)
+    // Keychain.set(this.SETTING_KEY, this.arg)
+    return await this.actionSetting1()
   }
 
-  /**
-   * 给图片加上半透明遮罩
-   * @param img 要处理的图片对象
-   * @return image
-   */
-  async shadowImage (img) {
-    let ctx = new DrawContext()
-    ctx.size = img.size
-    ctx.drawImageInRect(img, new Rect(0, 0, img.size['width'], img.size['height']))
-    // 图片遮罩颜色、透明度设置
-    ctx.setFillColor(new Color("#000000", 0.7))
-    ctx.fillRect(new Rect(0, 0, img.size['width'], img.size['height']))
-    let res = await ctx.getImage()
-    return res
-  }
-
-  async runActions () {
-    let { act, data } = this.parseQuery()
-    if (!act) return
-    if (act !== 'do') return
+  // 用户点击组件，触发的 action
+  async actionMenus (content) {
+    // this.settings = this.getSettings()
+    const data = JSON.parse(content)
     const alert = new Alert()
     alert.title = "一言"
-    alert.message = data
+    alert.message = data['hitokoto']
     alert.addAction("复制内容")
-    alert.addAction("查看源码")
+    alert.addAction("内容设置")
+    alert.addAction("关于一言")
     alert.addCancelAction("取消操作")
-
-    let idx = await alert.presentSheet()
-    switch (idx) {
-      case 0:
-        Pasteboard.copyString(data)
-        break
-      case 1:
-        Safari.openInApp("https://github.com/im3x/Scriptables/tree/main/%E4%B8%80%E8%A8%80", false)
-        break
+    const idx = await alert.presentSheet()
+    if (idx === 0) {
+      Pasteboard.copyString(data['hitokoto'] + "\n" + "—— " + data['from'])
+    } else if (idx === 1) {
+      return await this.actionSetting1()
+    } else if (idx === 2) {
+      Safari.openInApp('https://hitokoto.cn/about', false)
     }
-  }
-
-  // 获取跳转自身 urlscheme
-  // w.url = this.getURIScheme("copy", "data-to-copy")
-  getURIScheme (act, data) {
-    let _raw = typeof data === 'object' ? JSON.stringify(data) : data
-    let _data = Data.fromString(_raw)
-    let _b64 = _data.toBase64String()
-    return `scriptable:///run?scriptName=${encodeURIComponent(Script.name())}&act=${act}&data=${_b64}&__widget__=${encodeURIComponent(args['widgetParameter'])}`
-  }
-  // 解析 urlscheme 参数
-  // { act: "copy", data: "copy" }
-  parseQuery () {
-    const { act, data } = args['queryParameters']
-    if (!act) return { act }
-    let _data = Data.fromBase64String(data)
-    let _raw = _data.toRawString()
-    let result = _raw
-    try {
-      result = JSON.parse(_raw)
-    } catch (e) {}
-    return {
-      act,
-      data: result
-    }
-  }
-  /**
-   * 编辑测试使用
-   */
-  async test () {
-    if (config.runsInWidget) return
-    this.widgetSize = 'small'
-    let w1 = await this.render()
-    await w1.presentSmall()
-    this.widgetSize = 'medium'
-    let w2 = await this.render()
-    await w2.presentMedium()
-    this.widgetSize = 'large'
-    let w3 = await this.render()
-    await w3.presentLarge()
-  }
-  
-  /**
-   * 组件单独在桌面运行时调用
-   */
-  async init () {
-    if (!config.runsInWidget) return await this.runActions()
-    let widget = await this.render()
-    Script.setWidget(widget)
-    Script.complete()
   }
 }
+// @组件代码结束
 
-module.exports = Im3xWidget
-
-// 如果是在编辑器内编辑、运行、测试，则取消注释这行，便于调试：
-// await new Im3xWidget('').test()
-
-// 如果是组件单独使用（桌面配置选择这个组件使用，则取消注释这一行：
-// await new Im3xWidget(args.widgetParameter, true).init()
+const { Testing } = require("./「小件件」开发环境")
+await Testing(Widget)
