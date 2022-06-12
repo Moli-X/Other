@@ -34,10 +34,29 @@ https://www.icloud.com/shortcuts/ed5cf97d40a14c64b2c39e08f7608bba
 （目前支持微信、抖音）
 https://www.icloud.com/shortcuts/3f47db60713c4719a295069e25b8c0fb
 
+### 视频下载
 
 添加照片水印
 （修改文本框中'true'的值切换手动选择手机型号，可共享表单中运行）
 https://www.icloud.com/shortcuts/6afff3466f4243a3a6f33bafd17e5cd3
+
+Instagram视频下载：
+https://www.icloud.com/shortcuts/23758b614b76432686ba12b7dfa7872a
+
+Twitter视频下载1：
+https://www.icloud.com/shortcuts/7f27afcaf504421e98c13ceeae57d91d
+
+Twitter视频下载2：
+https://www.icloud.com/shortcuts/3de2f4e8f3904100b2f220b84035f05f
+
+YouTube视频下载：
+https://www.icloud.com/shortcuts/2d29eae00f5040a690453ba3b1683a0b
+
+微博视频下载：
+https://www.icloud.com/shortcuts/96b59704e34a45e997ab2af530c987c0
+
+Instagram/Twitter视频下载：
+https://www.icloud.com/shortcuts/e490321f7a1741ef82b8133373b24dfd
 
 
 ### 影视音乐类捷径
