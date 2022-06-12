@@ -58,6 +58,8 @@ https://www.icloud.com/shortcuts/96b59704e34a45e997ab2af530c987c0
 Instagram/Twitter视频下载：
 https://www.icloud.com/shortcuts/e490321f7a1741ef82b8133373b24dfd
 
+哔哩哔哩视频下载：
+https://www.icloud.com/shortcuts/34a0d0cacd374450aeae6f39e502bfb5
 
 ### 影视音乐类捷径
 
