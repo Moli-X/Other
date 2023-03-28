@@ -1,0 +1,251 @@
+//Pro0_MainProgram:主流程控制（单轴控制、群组控制、流程控制）
+
+//Part1:单轴控制
+	//1.0 轴指针映射
+AxisGroup[1] := ADR(Tractor_In_Axis);
+AxisGroup[2] := ADR(Tractor_Out_Axis);
+AxisGroup[3] := ADR(Print1_Plant_Axis);
+AxisGroup[4] := ADR(Print1_Based_Axis);
+AxisGroup[5] := ADR(Print2_Plant_Axis);
+AxisGroup[6] := ADR(Print2_Based_Axis);
+AxisGroup[7] := ADR(Module_Cut_Axis);
+AxisGroup[8] := ADR(Waste_Out_Axis);
+AxisGroup[9] := ADR(Fold_Wave_Axis);
+AxisGroup[10] := ADR(Fold_Tractor_Axis);
+AxisGroup[11] := ADR(Master_Virtual_Axis);
+	//1.1 使能控制
+MC_PowerGroup[1](Axis:= AxisGroup[1]^, Enable:= 1, bRegulatorOn:= PowerOn AND (TensonOn_TarIn OR NOT ControlMode_TractorIn) AND NOT PowerInChangeMode, bDriveStart:= 1);
+MC_PowerGroup[10](Axis:= AxisGroup[10]^, Enable:= 1, bRegulatorOn:= PowerOn AND (TensonOn_Wave OR NOT ControlMode_TractorWave) AND NOT PowerInChangeMode2, bDriveStart:= 1); 
+FOR i := 2 TO 9 DO
+	MC_PowerGroup[i](Axis:= AxisGroup[i]^, Enable:= 1, bRegulatorOn:= PowerOn, bDriveStart:= 1); 
+END_FOR;
+MC_PowerGroup[11](Axis:= AxisGroup[11]^, Enable:= 1, bRegulatorOn:= PowerOn, bDriveStart:= 1); 
+	//1.2 复位控制
+FOR i := 1 TO 11 DO
+	MC_ResetGroup[i](Axis:= AxisGroup[i]^, Execute:= TriggerReset);
+END_FOR;
+FOR i := 1 TO 10 DO
+	SMC3_ReinitDriveGroup[i](Axis:= AxisGroup[i]^, bExecute:= TriggerReset);
+END_FOR;
+MC_ResetGroup[1](Axis:= AxisGroup[1]^, Execute:= ResetTractorIn);
+MC_ResetGroup[10](Axis:= AxisGroup[10]^, Execute:= ResetWaveTra);
+ResetTractorIn := 0;
+ResetWaveTra := 0;
+TONG[1](IN:= TriggerReset,PT:= T#1S);
+IF TONG[1].Q THEN
+	TriggerReset := 0;
+	PowerOn := 1;
+END_IF;
+
+	//1.3 标零控制
+FOR i := 1 TO 11 DO
+	MC_HomeGroup[i](Axis:= AxisGroup[i]^, Execute:= TEST333);
+END_FOR;
+
+//Part2:群组控制
+	//2.1 齿轮控制(进料)
+MC_GearInGroup[1](Master:= Master_Virtual_Axis, Slave:= AxisGroup[1]^, Execute:= AxisGroup[1]^.bDriveStartRealState AND NOT ControlMode_TractorIn AND (TriggerGearIn OR GearRatioChangeTrigger_TarIn), RatioNumerator:= TO_DINT(GearRatio_TarIn*100000), RatioDenominator:= 100000, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+GearRatioChangeTrigger_TarIn := 0;
+	//2.2 齿轮控制(版辊1)
+MC_GearInGroup[3](Master:= Master_Virtual_Axis, Slave:= AxisGroup[3]^, Execute:= AxisGroup[3]^.bDriveStartRealState AND TriggerGearIn, RatioNumerator:= 1, RatioDenominator:= 1, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+	//2.3 齿轮控制(版辊2)
+MC_GearInGroup[5](Master:= Master_Virtual_Axis, Slave:= AxisGroup[5]^, Execute:= AxisGroup[5]^.bDriveStartRealState AND TriggerGearIn, RatioNumerator:= 1, RatioDenominator:= 1, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+	//2.4 齿轮控制(模切)
+MC_GearInGroup[7](Master:= Master_Virtual_Axis, Slave:= AxisGroup[7]^, Execute:= AxisGroup[7]^.bDriveStartRealState AND TriggerGearIn, RatioNumerator:= 1, RatioDenominator:= 1, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+	//2.5 齿轮控制(折页)
+MC_GearInGroup[9](Master:= Master_Virtual_Axis, Slave:= AxisGroup[9]^, Execute:= AxisGroup[9]^.bDriveStartRealState AND (TriggerGearIn OR GearRatioChangeTrigger_Wave), RatioNumerator:= TO_DINT((406.4/LabelLength)*100000000*TO_INT(ControlMode_TractorWave)), RatioDenominator:= 100000000, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+GearRatioChangeTrigger_Wave := 0;
+	//2.6 齿轮控制(铲废)
+MC_GearInGroup[8](Master:= Master_Virtual_Axis, Slave:= AxisGroup[8]^, Execute:= AxisGroup[8]^.bDriveStartRealState AND (TriggerGearIn OR GearRatioChangeTrigger_WasteOut), RatioNumerator:= TO_DINT(GearRatio_WasteOut*100000), RatioDenominator:= 100000, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+GearRatioChangeTrigger_WasteOut := 0;
+	//2.7 齿轮控制(出料)
+MC_GearInGroup[2](Master:= Master_Virtual_Axis, Slave:= AxisGroup[2]^, Execute:= TESTA AND AxisGroup[2]^.bDriveStartRealState, RatioNumerator:= TO_DINT(100000*(1+AdjOut)), RatioDenominator:= 100000, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+TONG[2](IN:= TriggerGearIn AND MC_GearInGroup[7].Busy, PT:= T#0.1S);
+IF TONG[2].Q THEN
+	TriggerGearIn := 0;
+END_IF;
+	//2.8 齿轮控制
+FOR i := 4 TO 7 BY 2 DO
+	MC_GearInGroup[i](Master:= Master_Virtual_Axis, Slave:= AxisGroup[i]^, Execute:= AxisGroup[i]^.bDriveStartRealState, RatioNumerator:= 1, RatioDenominator:= 1, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 10000);
+END_FOR;
+	//2.9 张力控制(进料)
+DMC_VelocityControl0(Axis:= AxisGroup[1]^, bEnable:= NOT DMC_VelocityControl1.bBusy AND AxisGroup[1]^.bDriveStartRealState AND ControlMode_TractorIn AND ((Master_Virtual_Axis.fActVelocity - 0.025 * PIDMV_TractoIn * TO_LREAL(TensonOn_TarIn)) >= 0), bContinuousUpdate:= 1, Direction:= 1);
+DMC_VelocityControl1(Axis:= AxisGroup[1]^, bEnable:= NOT DMC_VelocityControl0.bBusy AND AxisGroup[1]^.bDriveStartRealState AND ControlMode_TractorIn AND ((Master_Virtual_Axis.fActVelocity - 0.025 * PIDMV_TractoIn * TO_LREAL(TensonOn_TarIn)) < 0), bContinuousUpdate:= 1, Direction:= -1);
+DMC_VelocityControl0.lrVelocity := ABS(Master_Virtual_Axis.fActVelocity - 0.025 * PIDMV_TractoIn * TO_LREAL(TensonOn_TarIn));
+DMC_VelocityControl0.lrAcceleration := 1000;DMC_VelocityControl0.lrDeceleration := 1000;DMC_VelocityControl0.lrJerk := 10000;
+DMC_VelocityControl1.lrVelocity := ABS(Master_Virtual_Axis.fActVelocity - 0.025 * PIDMV_TractoIn * TO_LREAL(TensonOn_TarIn));
+DMC_VelocityControl1.lrAcceleration := 1000;DMC_VelocityControl1.lrDeceleration := 1000;DMC_VelocityControl1.lrJerk := 10000;
+	//2.10 张力控制(折页牵引)
+DMC_VelocityControl2(Axis:= AxisGroup[10]^, bEnable:= ControlMode_TractorWave AND NOT DMC_VelocityControl3.bBusy AND AxisGroup[10]^.bDriveStartRealState AND ((Master_Virtual_Axis.fActVelocity + 0.025 * PIDMV_WaveTra * TO_LREAL(TensonOn_Wave)) >= 0), bContinuousUpdate:= 1, Direction:= 1);
+DMC_VelocityControl3(Axis:= AxisGroup[10]^, bEnable:= ControlMode_TractorWave AND NOT DMC_VelocityControl2.bBusy AND AxisGroup[10]^.bDriveStartRealState AND ((Master_Virtual_Axis.fActVelocity + 0.025 * PIDMV_WaveTra * TO_LREAL(TensonOn_Wave)) < 0), bContinuousUpdate:= 1, Direction:= -1);
+DMC_VelocityControl2.lrVelocity := ABS(Master_Virtual_Axis.fActVelocity + 0.025 * PIDMV_WaveTra * TO_LREAL(TensonOn_Wave));
+DMC_VelocityControl2.lrAcceleration := 1000;DMC_VelocityControl2.lrDeceleration := 1000;DMC_VelocityControl2.lrJerk := 10000;
+DMC_VelocityControl3.lrVelocity := ABS(Master_Virtual_Axis.fActVelocity + 0.025 * PIDMV_WaveTra * TO_LREAL(TensonOn_Wave));
+DMC_VelocityControl3.lrAcceleration := 1000;DMC_VelocityControl3.lrDeceleration := 1000;DMC_VelocityControl3.lrJerk := 10000;
+	//2.11 主轴控制
+MC_MoveVelocity0(Axis:= Master_Virtual_Axis, Execute:= TriggerRun, Velocity:= MasterCmdSpeed, Acceleration:= 2500/RunAccTime, Deceleration:= 2500/RunDecTime, Jerk:= 10 * 2500/RunDecTime, Direction:= 1);
+MC_Stop0(Axis:= Master_Virtual_Axis, Execute:= TriggerStop);
+TriggerRun := 0;
+
+//Part3:流程控制
+	//3.0 信息显示
+MasterActSpeed := Master_Virtual_Axis.fActVelocity / 1000 * 60;
+IF Master_Virtual_Axis.fActVelocity > 0 THEN
+	MachineIsRun := 1;
+ELSE
+	MachineIsRun := 0;
+END_IF;
+	//3.1 启动流程
+		//3.1.1 蜂鸣器	
+R_TRIGG[1](CLK:= X2.1 OR TEST1);
+//IF R_TRIGG[1].Q AND NOT BuzzerDone AND NOT X2.4 AND Y0.3 THEN //Y0.3备妥指示灯
+IF R_TRIGG[1].Q AND NOT BuzzerDone AND NOT X2.4 THEN //Y0.3备妥指示灯
+	Y0.2 := 1;
+END_IF;
+TONG[3](IN:= Y0.2, PT:= T#3S);
+IF TONG[3].Q THEN
+	Y0.2 := 0;
+	BuzzerDone := 1;
+END_IF;
+		//3.1.2 加速
+IF R_TRIGG[1].Q AND BuzzerDone AND NOT X2.4 THEN
+	IF MasterCmdSpeed <= 0 THEN
+		MasterCmdSpeed := RunSpeed1 * 1000 / 60;
+	END_IF;
+	IF MC_MoveVelocity0.InVelocity THEN
+		IF MasterCmdSpeed >= RunSpeed5 * 1000 / 60 THEN
+			;
+		ELSIF MasterCmdSpeed >= RunSpeed4 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed5 * 1000 / 60;
+		ELSIF MasterCmdSpeed >= RunSpeed3 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed4 * 1000 / 60;
+		ELSIF MasterCmdSpeed >= RunSpeed2 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed3 * 1000 / 60;
+		ELSIF MasterCmdSpeed >= RunSpeed1 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed2 * 1000 / 60;
+		ELSIF MasterCmdSpeed >= 0 THEN
+			MasterCmdSpeed := RunSpeed1 * 1000 / 60;			
+		END_IF;
+	END_IF;
+	IF NowIsDecState THEN
+		MasterCmdSpeed := MasterActSpeed * 1000 / 60;
+	END_IF;
+	TriggerRun := 1;
+END_IF;
+		//3.1.3 减速
+R_TRIGG[2](CLK:= X2.2 OR TEST2);
+IF R_TRIGG[2].Q AND NOT X2.4 THEN
+	IF NOT MC_MoveVelocity0.InVelocity THEN
+		MasterCmdSpeed := MasterActSpeed * 1000 / 60;
+	ELSE
+		IF MasterCmdSpeed <= RunSpeed2 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed1 * 1000 / 60;
+		ELSIF MasterCmdSpeed <= RunSpeed3 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed2 * 1000 / 60;
+		ELSIF MasterCmdSpeed <= RunSpeed4 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed3 * 1000 / 60;
+		ELSIF MasterCmdSpeed <= RunSpeed5 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed4 * 1000 / 60;
+		ELSIF MasterCmdSpeed > RunSpeed5 * 1000 / 60 THEN
+			MasterCmdSpeed := RunSpeed5 * 1000 / 60;
+		END_IF;
+	END_IF;
+	NowIsDecState := 1;
+	TriggerRun := 1;
+END_IF;
+R_TRIGG[3](CLK:= MC_MoveVelocity0.InVelocity);
+TONG[4](IN:= (NowIsDecState AND MC_MoveVelocity0.InVelocity) OR NOT MachineIsRun, PT:= T#10MS);
+IF R_TRIGG[3].Q OR TONG[4].Q THEN
+	NowIsDecState := 0;
+END_IF;
+		//3.1.4 停止
+F_TRIGG[4](CLK:= X2.3 AND NOT TEST3);
+R_TRIGG[4](CLK:= TriggerStopByMeter OR StopByMeterOn);
+IF F_TRIGG[4].Q OR R_TRIGG[4].Q THEN
+	MC_Stop0.Deceleration := 2500 / RunDecTime;
+	MC_Stop0.Jerk := 10 * 2500 / RunDecTime;
+	TriggerStop := 1;
+END_IF;
+		//3.1.5 急停
+F_TRIGG[5](CLK:= X2.0);
+IF F_TRIGG[5].Q THEN
+	MC_Stop0.Deceleration := 2500 / EMCDecTime;
+	MC_Stop0.Jerk := 100 * 2500 / EMCDecTime;
+	TriggerStop := 1;
+END_IF;
+IF NOT X2.0 AND NOT MachineIsRun THEN
+	PowerOn := 0;
+END_IF;
+		//3.1.6 报错停机
+R_TRIGG[6](CLK:= ErrorID <> 0 AND ErrorID26 <> 26 AND ErrorID27 <> 27); //物料停机、记米停机另行处理
+IF R_TRIGG[6].Q THEN
+	MC_Stop0.Deceleration := 2500 / ERRDecTime;
+	MC_Stop0.Jerk := 100 * 2500 / ERRDecTime;
+	TriggerStop := 1;
+END_IF;
+		//3.1.7 状态复位
+R_TRIGG[7](CLK:= MC_Stop0.Done OR MC_Stop0.Error);
+IF R_TRIGG[7].Q THEN
+	TriggerStop := 0;
+	MasterCmdSpeed := 0;
+	BuzzerDone := 0;
+	TriggerStopByMeter := 0;
+END_IF;
+		//3.1.8 给定速度
+IF RunSpeedChangeOnce THEN
+	MasterCmdSpeed := RunSpeedBySet * 1000 / 60;
+	RunSpeedChangeOnce := 0;
+	TriggerRun := 1;
+END_IF;
+	//3.2 点动控制
+TONG[5](IN:= (JogState = 1), PT:= T#3S);
+TONG[6](IN:= (JogState = 3) AND NOT X2.4, PT:= T#3S);
+R_TRIGG[8](CLK:= X2.4);
+F_TRIGG[8](CLK:= X2.4);
+CASE JogState OF
+	0:
+	IF R_TRIGG[8].Q AND (MasterActSpeed <= 0) THEN
+		Y0.2 := 1;
+		JogState := 1;
+	END_IF;
+	1:
+	IF TONG[5].Q THEN
+		Y0.2 := 0;
+		JogState := 2;		
+	END_IF;
+	2:
+	IF R_TRIGG[8].Q THEN
+		MasterCmdSpeed := JogSpeed * 1000 / 60;
+		TriggerRun := 1;
+		JogState := 3;
+	END_IF;	
+	3:
+	IF R_TRIGG[8].Q THEN
+		MasterCmdSpeed := JogSpeed * 1000 / 60;
+		TriggerRun := 1;
+		JogState := 3;
+	END_IF;	
+	IF F_TRIGG[8].Q THEN
+		MC_Stop0.Deceleration := 2500 / RunDecTime;
+		TriggerStop := 1;
+	END_IF;	
+END_CASE;
+IF TONG[6].Q THEN
+	JogState := 0;
+END_IF;
+
+	//3.3 手动套准（版辊1、版辊2、模切、折页）
+MC_MoveSuperImposed1(Axis:= Print1_Plant_Axis, Execute:= (X7.5 OR X7.6 OR AdjByHMI_Frd_Print1 OR AdjByHMI_Bkd_Print1) AND Print1_Plant_Axis.bDriveStartRealState, Distance:= AdjStepPrint1 * (TO_INT(X7.5) * -1 + TO_INT(X7.6) + TO_INT(AdjByHMI_Frd_Print1) * -1 + TO_INT(AdjByHMI_Bkd_Print1)), VelocityDiff:= 100, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 1000);
+MC_MoveSuperImposed2(Axis:= Print2_Plant_Axis, Execute:= (X8.5 OR X8.6 OR AdjByHMI_Frd_Print2 OR AdjByHMI_Bkd_Print2) AND Print2_Plant_Axis.bDriveStartRealState, Distance:= AdjStepPrint2 * (TO_INT(X8.5) * -1 + TO_INT(X8.6) + TO_INT(AdjByHMI_Frd_Print2) * -1 + TO_INT(AdjByHMI_Bkd_Print2)), VelocityDiff:= 100, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 1000);
+MC_MoveSuperImposed3(Axis:= Module_Cut_Axis, Execute:= (X4.1 OR X4.2 OR AdjByHMI_Frd_CutModule OR AdjByHMI_Bkd_CutModule) AND Module_Cut_Axis.bDriveStartRealState, Distance:= AdjStepCutModule * (TO_INT(X4.1) * -1 + TO_INT(X4.2) + TO_INT(AdjByHMI_Frd_CutModule) * -1 + TO_INT(AdjByHMI_Bkd_CutModule)), VelocityDiff:= 100, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 1000);
+MC_MoveSuperImposed4(Axis:= Fold_Wave_Axis, Execute:= (X1.2 OR X1.3 OR AdjByHMI_Frd_Wave OR AdjByHMI_Bkd_Wave) AND Fold_Wave_Axis.bDriveStartRealState, Distance:= AdjStepWave * (TO_INT(X1.2) * -1 + TO_INT(X1.3) + TO_INT(AdjByHMI_Frd_Wave) * -1 + TO_INT(AdjByHMI_Bkd_Wave)), VelocityDiff:= 100, Acceleration:= 1000, Deceleration:= 1000, Jerk:= 1000);
+
+	//3.4 套准测试叠加
+MC_MoveSuperImposed5(Axis:= Print1_Plant_Axis, Execute:= ErrTriggerFixed_1, Distance:= ErrGrarRatioFiexd_1, VelocityDiff:= ABS(ErrGrarRatioFiexd_1 / 0.002), Acceleration:= ABS(ErrGrarRatioFiexd_1 / 0.0002), Deceleration:= ABS(ErrGrarRatioFiexd_1 / 0.0002), Jerk:= ABS(ErrGrarRatioFiexd_1 / 0.00002));
+MC_MoveSuperImposed6(Axis:= Print2_Plant_Axis, Execute:= ErrTriggerFixed_2, Distance:= ErrGrarRatioFiexd_2, VelocityDiff:= ABS(ErrGrarRatioFiexd_2 / 0.002), Acceleration:= ABS(ErrGrarRatioFiexd_2 / 0.0002), Deceleration:= ABS(ErrGrarRatioFiexd_2 / 0.0002), Jerk:= ABS(ErrGrarRatioFiexd_2 / 0.00002));
+MC_MoveSuperImposed7(Axis:= Module_Cut_Axis, Execute:= ErrTriggerFixed_3, Distance:= ErrGrarRatioFiexd_3, VelocityDiff:= ABS(ErrGrarRatioFiexd_3 / 0.002), Acceleration:= ABS(ErrGrarRatioFiexd_3 / 0.0002), Deceleration:= ABS(ErrGrarRatioFiexd_3 / 0.0002), Jerk:= ABS(ErrGrarRatioFiexd_3 / 0.00002));
+MC_MoveSuperImposed8(Axis:= Fold_Wave_Axis, Execute:= ErrTriggerFixed_4, Distance:= ErrGrarRatioFiexd_4, VelocityDiff:= ABS(ErrGrarRatioFiexd_4 / 0.002), Acceleration:= ABS(ErrGrarRatioFiexd_4 / 0.0002), Deceleration:= ABS(ErrGrarRatioFiexd_4 / 0.0002), Jerk:= ABS(ErrGrarRatioFiexd_4 / 0.00002));
+ErrTriggerFixed_1 := 0;
+ErrTriggerFixed_2 := 0;
+ErrTriggerFixed_3 := 0;
+ErrTriggerFixed_4 := 0;
