@@ -1,0 +1,48 @@
+payload:
+# 内容：适用于常见游戏平台的国内下载列表
+# 本列表引用来自:https://github.com/dogfight360/UsbEAm
+# 感谢开发者：dogfight360
+# 开发者主页：https://www.dogfight360.com/blog/
+
+# EPIC游戏下载、更新[中国]
+  - DOMAIN,epicgames-download1-1251447533.file.myqcloud.com
+
+# Battle.net 战网游戏下载、更新[中国]
+  - DOMAIN-SUFFIX,pdl.wow.battlenet.com.cn
+#  - DOMAIN,client05.pdl.wow.battlenet.com.cn
+#  - DOMAIN,client02.pdl.wow.battlenet.com.cn
+#  - DOMAIN,client02-cm.pdl.wow.battlenet.com.cn
+
+# GOG游戏下载、更新[中国]
+
+# 微软商店游戏下载、应用下载、系统更新[中国]
+  - DOMAIN,assets1.xboxlive.cn
+  - DOMAIN,assets2.xboxlive.cn
+  - DOMAIN,dl.delivery.mp.microsoft.com
+  - DOMAIN,tlu.dl.delivery.mp.microsoft.com
+
+# UBisoft Connect(Uplay)育碧游戏下载、更新[中国]
+  - DOMAIN,uplaypc-s-ubisoft.cdn.ubionline.com.cn
+
+# Origin艺电游戏平台[中国]
+
+# EA Desktop游戏下载[中国]
+
+# Steam游戏下载、更新[中国]
+  - DOMAIN,steampipe.steamcontent.tnkjmec.com
+  - DOMAIN,dl.steam.clngaa.com
+  - DOMAIN,st.dl.eccdnx.com
+  - DOMAIN,st.dl.bscstorage.net
+  - DOMAIN,trts.baishancdnx.cn
+  - DOMAIN,cdn-ws.content.steamchina.com
+  - DOMAIN,cdn-ali.content.steamchina.com
+  - DOMAIN,xz.pphimalayanrt.com
+  - DOMAIN,cdn-qc.content.steamchina.com
+
+# Riot游戏下载、更新[中国]
+
+# FiveM游戏下载、更新、社区[中国]
+
+# Bethesda贝塞斯达客户端、游戏及mod的下载、更新[中国]
+
+# Hikari Field游戏下载及更新[中国]
