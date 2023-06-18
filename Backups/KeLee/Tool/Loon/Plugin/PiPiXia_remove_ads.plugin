@@ -1,0 +1,17 @@
+#!name = 皮皮虾去广告
+#!desc = 过滤皮皮虾广告，移除水印。
+#!openUrl = 
+#!author = Liquor030
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/PiPiXia.png
+
+[Rewrite]
+# 移除皮皮虾广告
+app_name=super&([\S]*)aid=\d+ header app_name=super_pro&$1aid=1412
+
+[Script]
+# 移除皮皮虾水印
+http-response ^https?://.*\.(snssdk|pipix.com)\.com/bds/(feed/stream|comment/cell_reply|cell/cell_comment|cell/detail|ward/list|user/favorite|user/cell_coment|user/cell_userfeed|user/publish_list) script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/PiPiXia/PiPiXia_remove_ads.js, requires-body = true, tag = 移除皮皮虾水印
+
+[MITM]
+hostname = *.snssdk.com, *pipix.com

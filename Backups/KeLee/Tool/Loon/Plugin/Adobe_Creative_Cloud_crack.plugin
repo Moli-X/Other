@@ -1,0 +1,15 @@
+#!name = Adobe Creative Cloud解锁
+#!desc = 除PS Express无法解锁外，其余未标出软件均为Cloud Storage类型订阅。
+#!openUrl = 
+#!author = Marol62926
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Adobe_Creative_Cloud.png
+
+[Script]
+# Adobe Photoshop, Adobe Illustrator, Adobe Lightroom, Premiere Rush, Adobe Express, Spark Page, Spark Video, Adobe Fresco
+http-response ^https?:\/\/lcs-mobile-cops\.adobe\.io\/mobile_profile\/nul\/v2 script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Adobe_Creative_Cloud/Adobe_Creative_Cloud_crack1.js, requires-body=true, tag=解锁AE/AF/AI/AL/PR/PS/SP/SV
+# > Adobe Scan, Adobe Acrobat
+http-response ^https?:\/\/createpdf\.acrobat\.com\/createpdf\/api\/users\/me\/subscriptions script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Adobe_Creative_Cloud/Adobe_Creative_Cloud_crack2.js, requires-body=true, tag=解锁AA/AS
+
+[MITM]
+hostname = lcs-mobile-cops.adobe.io,createpdf.acrobat.com

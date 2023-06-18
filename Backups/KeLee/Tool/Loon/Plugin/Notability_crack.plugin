@@ -1,0 +1,12 @@
+#!name = Notability解锁
+#!desc = 点击恢复购买即可解锁订阅
+#!openUrl = 
+#!author = litieyin
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Notability.png
+
+[Script]
+http-response ^https?:\/\/notability\.com\/subscriptions script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Notability/Notability_crack.js, requires-body=true, tag=Notability解锁
+
+[MITM]
+hostname = notability.com

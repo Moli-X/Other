@@ -1,0 +1,13 @@
+#!name = 半次元去广告
+#!desc = 过滤半次元广告，移除图片及视频水印。
+#!openUrl = 
+#!author = 可莉🅥
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/QuantumultX/Rewrite
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Bcy.png
+
+[Script]
+# 移除图片视频水印
+http-response ^https:\/\/api\.bcy\.net\/apiv2\/item\/detail\? script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Bcy/Bcy_remove_ads.js, requires-body = true, tag = 移除图片视频水印
+
+[MITM]
+hostname = api.bcy.net

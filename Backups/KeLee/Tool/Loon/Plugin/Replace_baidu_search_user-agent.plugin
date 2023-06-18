@@ -1,0 +1,17 @@
+#!name = 伪装百度搜索
+#!desc = 将百度搜索网页强制重定向到移动端页面，并将浏览器伪装成百度搜索App，以获得无广告的搜索结果。
+#!openUrl = 
+#!author = 可莉🅥 毒奶 RuCu6
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Baidu.png
+
+[Rewrite]
+^https?:\/\/www\.baidu\.com 302 https://m.baidu.com
+^https?:\/\/m\.baidu\.com header-replace user-agent Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 SearchCraft/3.9.0 (Baidu; P2 16.3)
+
+[Script]
+# 移除百度搜索首页信息流
+http-response ^https?:\/\/(www|m)\.baidu\.com(/|\/\?ref.*|\/\?from.*)$  script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/BaiduSearch/BaiduSearchHomePage_remove_ads.js, requires-body = true, tag = 移除百度搜索首页广告
+
+[MITM]
+hostname = m.baidu.com, www.baidu.com

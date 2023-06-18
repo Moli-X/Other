@@ -1,0 +1,12 @@
+#!name = AppRaven解锁
+#!desc = 点击恢复购买即可解锁订阅
+#!openUrl = 
+#!author = 佚名
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/AppRaven.png
+
+[Script]
+http-response ^https?:\/\/AppRaven\.net\/AppRaven\/(app|social|buy) script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/AppRaven/AppRaven_crack.js, requires-body = true, tag = AppRaven解锁
+
+[MITM]
+hostname = appraven.net

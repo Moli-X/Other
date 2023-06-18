@@ -1,0 +1,15 @@
+#!name = RevenueCat解锁
+#!desc = 点击恢复购买即可解锁
+#!openUrl = 
+#!author = langkhach270389
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/Website_icon/120px/RevenueCat.png
+
+[Rewrite]
+https:\/\/api\.revenuecat\.com header-del x-revenuecat-etag
+
+[Script]
+http-response ^https:\/\/api\.revenuecat\.com script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/RevenueCat/RevenueCat_crack.js, requires-body = true, tag = RevenueCat解锁
+
+[Mitm]
+hostname = api.revenuecat.com

@@ -1,0 +1,12 @@
+#!name = Nicegram解锁
+#!desc = 点击恢复高级版即可解锁订阅
+#!openUrl = 
+#!author = Marol62926
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Nicegram.png
+
+[Script]
+http-response ^https?:\/\/restore-access\.indream\.app\/restoreAccess\?id=\w+$ script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Nicegram/Nicegram_crack.js, requires-body=true, timeout=10, tag=Nicegram会员
+
+[MITM]
+hostname = restore-access.indream.app

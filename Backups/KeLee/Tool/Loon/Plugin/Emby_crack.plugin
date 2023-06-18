@@ -1,0 +1,12 @@
+#!name = Emby解锁
+#!desc = 点击恢复购买即可解锁
+#!openUrl = 
+#!author = 可莉🅥
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Emby.png
+
+[Script]
+http-response ^https?:\/\/mb3admin.com\/admin\/service\/registration\/validateDevice script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Emby/Emby_crack.js, requires-body=true, tag=Emby解锁
+
+[Mitm]
+hostname = mb3admin.com

@@ -1,0 +1,12 @@
+#!name = HappyDays解锁
+#!desc = 点击恢复购买即可解锁
+#!openUrl = 
+#!author = 彭于晏
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/HappyDays.png
+
+[Script]
+http-response ^https:\/\/api\.revenuecat\.com\/v1\/(receipts|subscribers)\/* script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/HappyDays/HappyDays_crack.js, requires-body=true, tag=HappyDays解锁
+
+[Mitm]
+hostname = api.revenuecat.com

@@ -1,0 +1,107 @@
+#!name = 可莉广告过滤器
+#!desc = 可莉自用的广告过滤器
+#!openUrl = 
+#!author = 张军 RuCU6 app2smile 可莉🅥 
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/Other_icon/120px/KeLee.png
+
+[Rule]
+# 小米
+DOMAIN, sdkconfig.ad.xiaomi.com, REJECT
+DOMAIN, data.mistat.xiaomi.com, REJECT
+DOMAIN, tracking.intl.miui.com, REJECT
+# 米家
+DOMAIN, sdkconfig.ad.xiaomi.com, REJECT
+# TubeMax搜索栏广告
+DOMAIN-SUFFIX, applovin.com, REJECT
+
+# 通用广告
+DOMAIN-SUFFIX, doubleclick-cn.net, REJECT
+DOMAIN-SUFFIX, doubleclick.net, REJECT
+
+
+
+[Rewrite]
+# 摩托范弹窗广告
+^https?:\/\/api-access\.pangolin-sdk-toutiao\.com\/api\/ad\/union\/sdk reject
+
+#网易新闻
+^https?:\/\/interface\.music\.163\.com\/eapi\/ad reject
+^https?:\/\/c\.m\.163\.com\/nc\/gl\/ reject
+^https?:\/\/client\.mail\.163\.com\/apptrack\/confinfo\/searchMultiAds reject
+^https?:\/\/g1\.163\.com\/madfeedback reject
+^https?:\/\/nex\.163\.com\/q reject
+^https?:\/\/interface\.music\.163\.com\/eapi\/ad\/ reject
+^https?:\/\/support\.you\.163\.com\/xhr\/boot\/getBootMedia\.json reject
+^https?:\/\/interface3?\.music\.163\.com/eapi/(ad|abtest|sp|hot|store|search/(specialkeyword|defaultkeyword|hot)) reject
+
+# 米家
+^https?:\/\/home\.mi\.com\/cgi-op\/api\/v1\/recommendation\/myTab reject
+
+# 小米
+^https?:\/\/api\.m\.mi\.com\/v\d\/app\/start reject-200
+^https?:\/\/api\.jr\.mi\.com\/v\d\/adv\/ reject-200
+^https?:\/\/api\.jr\.mi\.com\/jr\/api\/playScreen reject-200
+^https?:\/\/api-mifit.+?\.huami\.com\/discovery\/mi\/discovery\/.+?_ad\? reject-200
+^https?:\/\/home\.mi\.com\/cgi-op\/api\/v\d\/recommendation\/banner reject
+^https?:\/\/(api-mifit|api-mifit-\w+)\.huami\.com\/discovery\/mi\/discovery\/\w+_ad\? reject
+^https?:\/\/api-mifit\.huami\.com\/discovery\/mi\/discovery\/homepage_ad\? reject-img
+^https?:\/\/api-mifit\.huami\.com\/discovery\/mi\/discovery\/sleep_ad\? reject-img
+^https?:\/\/api-mifit\.huami\.com\/discovery\/mi\/discovery\/sport_summary_ad\? reject-img
+^https?:\/\/api-mifit\.huami\.com\/discovery\/mi\/discovery\/sport_training_ad\? reject-img
+^https?:\/\/api-mifit\.huami\.com\/discovery\/mi\/discovery\/step_detail_ad\? reject-img
+^https?:\/\/api-mifit\.huami\.com\/discovery\/mi\/discovery\/training_video_ad\? reject-img
+
+# 小米商城
+^https?:\/\/api\.m\.mi\.com\/v1\/app\/start url script-response-body https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+# 小米有品
+^https:\/\/shopapi\.io\.mi\.com\/mtop\/mf\/resource\/homePage\/pageConfig reject-200
+# 小米运动
+^https:\/\/api-mifit-cn2\.huami\.com\/discovery\/mi\/cards\/startpage_ad reject
+
+# 米家
+^https:\/\/home\.mi\.com\/cgi-op\/api\/v1\/recommendation\/(banner|myTab)\? reject-dict
+
+# 米读
+^https:\/\/apiwz\.midukanshu\.com\/advert\/getPopup$ reject
+^https:\/\/apiwz\.midukanshu\.com\/advert\/treasureInfo$ reject
+^https:\/\/apiwz\.midukanshu\.com\/config\/getAds$ reject
+
+# 有兔阅读（米兔）
+^http:\/\/img\.dailmo\.com\/img\/61\/23c7125bfe6166d69f3bff5b0ca4d31e\.jpg reject
+^http:\/\/img\.dailmo\.com\/img\/50\/edb40c6392f848df37f9c31d8a6f90f6\.jpg reject
+^http:\/\/img\.dailmo\.com\/img\/6\/90585d9e96c73dd49644af57d8501624\.jpg reject
+^http:\/\/img\.dailmo\.com\/img\/5\/6cb2aa237ce1f65944aa1ecb29fbdeef\.jpg reject
+^http:\/\/img\.allahall\.com\/img\/61\/23c7125bfe6166d69f3bff5b0ca4d31e\.jpg reject
+^http:\/\/img\.allahall\.com\/img\/50\/edb40c6392f848df37f9c31d8a6f90f6\.jpg reject
+^http:\/\/img\.allahall\.com\/img\/6\/90585d9e96c73dd49644af57d8501624\.jpg reject
+^http:\/\/img\.allahall\.com\/img\/5\/6cb2aa237ce1f65944aa1ecb29fbdeef\.jpg reject
+^http:\/\/img\.allahall\.com\/img\/59\/6a13a75dfe46ebfdac96bd27ef098885\.jpg reject
+^http:\/\/app\.zhoudamozi\.com\/ad\/.+ reject-200
+
+# 拼多多 //api.pinduoduo.com, api.yangkeduo.com
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/cappuccino\/splash url reject
+
+# 闲鱼 //gw.alicdn.com, acs.m.taobao.com
+^https:\/\/gw\.alicdn\.com\/mt\/ url reject
+^https:\/\/gw\.alicdn\.com\/tfs\/.+\d{3,4}-\d{4} url reject
+^https:\/\/gw\.alicdn\.com\/tps\/.+\d{3,4}-\d{4} url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome url reject
+
+# QQ - 钱包推广 m.qianbao.qq.com
+^https?:\/\/m\.qianbao\.qq\.com\/services\/walletHome\/getQQshopData\?invisible reject
+^https?:\/\/m\.qianbao\.qq\.com\/pages\/walletHome\?invisible reject
+
+# 猫耳FM - 开屏广告 app.missevan.com
+^https:\/\/app\.missevan\.com\/site\/launch\? reject
+
+# 和风天气 hfapp-service.qweather.net
+^https:\/\/hfapp-service\.qweather\.net\/v2\.0\/app\/ad\/list\? reject-dict
+
+[Script]
+# 快手联盟、优量汇、穿山甲
+http-response ^https:\/\/(api-access\.pangolin-sdk-toutiao\.com\/api\/ad\/union\/sdk\/get_ads|open\.e\.kuaishou\.com\/rest\/e\/v3\/open\/univ$|mi\.gdt\.qq\.com\/gdt_mview\.fcg\?) script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Remove_ads_by_keli/adsense.js, requires-body=true, tag = 移除广告联盟广告
+
+
+[MITM]
+hostname = api-access.pangolin-sdk-toutiao.com, nex.163.com, c.m.163.com, g1.163.com, client.mail.163.com, interfac*.music.163.com, support.you.163.com, api.mh.163.com, p.du.163.com, api.m.mi.com, *.huami.com, api.jr.mi.com, home.mi.com, shopapi.io.mi.com, img.dailmo.com, img.allahall.com, app.zhoudamozi.com, api.pinduoduo.com, api.yangkeduo.com, gw.alicdn.com, acs.m.taobao.com, ccmsupport-sz.tenpay.com, m.qianbao.qq.com, app.missevan.com, api-access.pangolin-sdk-toutiao.com, mi.gdt.qq.com, open.e.kuaishou.com, hfapp-service.qweather.net

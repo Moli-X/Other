@@ -1,0 +1,12 @@
+#!name = 百度网盘去广告
+#!desc = 过滤百度网盘广告
+#!openUrl = 
+#!author = RuCu6
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/BaiduNetDisk.png
+
+[Rewrite]
+^https?:\/\/pan\.baidu\.com\/(act\/(api\/activityentry|v2\/(bchannel|welfare)\/list)|rest\/2\.0\/pcs\/ad) reject
+
+[MITM]
+hostname = pan.baidu.com

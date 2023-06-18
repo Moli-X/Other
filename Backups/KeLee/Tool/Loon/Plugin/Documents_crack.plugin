@@ -1,0 +1,12 @@
+#!name = Documents解锁
+#!desc = 点击恢复购买即可解锁订阅
+#!openUrl = 
+#!author = 彭于晏
+#!homepage = https://gitlab.com/lodepuly/vpn_tool/-/tree/main/Tool/Loon/Plugin
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/120px/Documents.png
+
+[Script]
+http-request ^https:\/\/license\.pdfexpert\.com\/api\/2\.0\/documents\/subscription\/refresh script-path=https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/Documents/Documents_crack.js, requires-body=true, tag=Documents解锁
+
+[MITM]
+hostname = license.pdfexpert.com
