@@ -1,15 +1,14 @@
-local ListNumber=5
-local ListRange={0,0,1,15,16,16,17,24,25,69}
+
 
 
 --====================上海大花智能追蹤點膠公版程序==================================
---====================2023.08.15 CAD-CAM               ==================================
+--====================2023.08.17 CAD-CAM               ==================================
 --[[                  地址定義
 =========input&output=============================================================
 /* Others */ 
 0x3000-----"DW"------产量
 0x3002-----"W"-------WorkFlg，0:空跑 / 1:工作
-0x3003-----"W"-------WorkDO，排膠DO編號（1~12）
+0x3003-----"W"-------GlueDO，排膠DO編號（1~12）
 0x3004-----"W"-------主站手臂編號：0-3
 0x3005-----"W"-------Robot1State，0:禁用 / 1:啟用
 0x3006-----"W"-------Robot2State，0:禁用 / 1:啟用
@@ -91,7 +90,7 @@ local ListRange={0,0,1,15,16,16,17,24,25,69}
 0x30F3----"W"------关胶延时---单位ms
 0x30F4----"W"------NGZoneRadius--单位mm
 0x30F5----"W"------radius----单位mm
-
+0x30F6----"DW"-----AngleOffset----单位°
 
 DXF檔案分段設置
 0x30FC  , "DW" : SectionEnable，啟用分段參數 1启用  2禁用
@@ -131,17 +130,19 @@ DXF檔案分段設置
 --================================================================================
 
 PointNum={}--轨迹段落数据处理 
-Total = 1081
+Total = *****
 Count = 0 
 LineHopsNum = 1  --连续轨迹跳点间隔
 DefaultGlueTime=0.1             --默认的注胶时间，如上位未设置分段参数，则默认采用该值
 DefaultGlueSpeed=2000           --默认的注胶速度
 DefaultGlueAcc=25000            --默认的注胶加速度
 DefaultGlueDec=25000            --默认的注胶減速度
-SafeHset = 10                  --安全高度設置
 
-Tolerance=1                     --根据轨迹的首尾两点之间的距离判断是否为闭合曲线，该参数视情况确认是否需要开出来
-PassPointNum=10                 --闭合曲线，需要多走的点位数量
+Output=0						--产能计数
+
+
+Tolerance=10                    --根据轨迹的首尾两点之间的距离判断是否为闭合曲线，该参数视情况确认是否需要开出来
+PassPointNum=1                 --闭合曲线，需要多走的点位数量
 for i = 1,ListNumber do
 	PointNum[i]={}
 	PointNum[i][1]=ListRange[(i-1)*2+1]+1011 --第i段轨迹初始点
@@ -151,9 +152,9 @@ end
 
 --- <summary>从PC接收CVT参数</summary>
 --- <argument name=" "> </argument>
-function OnceDateFromPC()
+function GetCVTParam()
     WorkFlg = ReadModbus(0x3002,"W") --1:Work / 0:NoWork
-    WorkDO  = ReadModbus(0x3003,"W")
+    GlueDO  = ReadModbus(0x3003,"W")
     CVTMasterIdx = ReadModbus(0x3004,"W") 
     Robot0State = ReadModbus(0x3005,"W")
     Robot1State = ReadModbus(0x3006,"W")
@@ -161,7 +162,7 @@ function OnceDateFromPC()
     Robot3State = ReadModbus(0x3008,"W")
     CurrentRobotIndex=ReadModbus(0x3009,"W")
     CV1_cvtSpeedOffset = ReadModbus(0x3010,"DW")/100
-    CV1_visionlengthOffset = ReadModbus(0x3012,"DW")-20000 
+    CV1_visionlengthOffset = ReadModbus(0x3012,"DW")
     CV1_cvtFactor_num = ReadModbus(0x3014,"DW")
     CV1_cvtFactor_den = ReadModbus(0x3016,"DW")
     CV1_CVCmpstVectorP1_X = ReadModbus(0x3018,"DW") 
@@ -196,24 +197,25 @@ function OnceDateFromPC()
     RobX3 = ReadModbus(0x3068,"DW")/1000
     RobY3 = ReadModbus(0x306A,"DW")/1000              
     RobX4 = ReadModbus(0x306C,"DW")/1000
-    RobY4 = ReadModbus(0x306E,"DW")/1000                
+    RobY4 = ReadModbus(0x306E,"DW")/1000 
+	
+	SlaveIP3 = ReadModbus(0x30B0, "W")
+	SlaveIP4 = ReadModbus(0x30B1, "W")
 end
 
 --- <summary>从PC接收工艺参数</summary>
 function GetCraftParam()
-	RunSpeedL= ReadModbus(0x30F0, "W")
-	RunSpeedJ= ReadModbus(0x30F1, "W")
+	RunSpeedL= ReadModbus(0x30F0, "W")/2000
+	RunSpeedJ= ReadModbus(0x30F1, "W")/100
 	OpenGlueDelay=ReadModbus(0x30F2, "W")/1000
 	CloseGlueDelay=ReadModbus(0x30F3, "W")/1000
-	CV_NGZoneRadius=ReadModbus(0x30F4, "W")*1000   ---单位mm
-	radius =ReadModbus(0x30F5, "W")   ---单位mm
+	CV1_NGZoneRadius=ReadModbus(0x30F4, "W")*1000   ---单位mm
+	CV1_radius =ReadModbus(0x30F5, "W")   ---单位mm	
+	AngleOffset=ReadModbus(0x30F6, "DW")/1000
+	
 end
 
---- <summary>从PC接收从站IP地址</summary>
-function GetSlaveIP()
-	SlaveIP3=ReadModbus(0x30B0, "W")
-	SlaveIP4=ReadModbus(0x30B1, "W")
-end
+
 
 --- <summary>計算TransCCD</summary>
 -- length:四點校正偏移距離
@@ -300,7 +302,7 @@ function CVT1Set()
     CV_vuAgRatioDen = 1     -- 角度轉換係數分母
     CV_vuXYExchgFlag = 0    -- 視覺座標系XY對調旗標，1開啟，0關閉  
 
-    CV_NGZoneRadius = CV_NGZoneRadius     --样本預測落点区域大小(預設區域為圓，此為圓之半徑，單位um)
+    CV_NGZoneRadius = CV1_NGZoneRadius     --样本預測落点区域大小(預設區域為圓，此為圓之半徑，單位um)
 
     --觸髮線
     CV_robotTrigLinePX = CV1_TrigLine_X
@@ -324,7 +326,7 @@ function CVT1Set()
     P4 = Point(RobX4,RobY4)--(mm)
 
     CoordTransform_2D_Use(CV_ID, C1, C2, C3, C4, P1, P2, P3, P4)--如果转换关系设定于视觉，请屏蔽这行指令
-    radius =radius
+    radius = CV1_radius
     CVT_SetNGZoneExistArea(CV_ID, P1, P2, P3, P4, radius)
 
     --進階參數，一般不需要改動
@@ -339,16 +341,13 @@ function CVT1Set()
     CV_CRotatSwFlag = 0              --RZ軸旋轉與否 0->隨視覺角度旋轉, 1->RZ角度固定
 
     ---Advanced Function---
-    --[[
-    if (CurrentRobotIndex==CVTMasterIdx and CurrentRobotIndex==0 and Robot1State==1) then  --如果当前手臂是主站，并且当前手臂是第一台，并且第二台没被警用
-        CVT_Master(2,1,{2,2}) 
+    
+    if (CurrentRobotIndex == CVTMasterIdx and CurrentRobotIndex== 0 and Robot1State == 1) then  --如果当前手臂是主站，并且当前手臂是第一台，并且第二台没被禁用
+        --CVT_Master(2,1,{2,2}) --主从模式时打开
         CVT_PartnerType("main") --設定為Partner Main
         CVT_Robot2(192, 168, SlaveIP3, SlaveIP4,true) --Via為.3
     end
-    ]]
-    CVT_PartnerType("MAIN") 
-   -- CVT_Master(2,1,{1,1}) 
-    CVT_Robot2(192, 168, SlaveIP3, SlaveIP4,true) --Via為.3
+
      
      
     CVT_Initialization(CV_cvtuIdx, CV_instType, CV_instIdx, CV_srcType, CV_srcIdx, CV_cvtFactor_num, CV_cvtFactor_den,
@@ -371,32 +370,17 @@ end
 return result	
 end
 
-function ResetUF1()
- UF1O_X=(CV1_TrigLine_X+CV1_EndLine_X)/2000
- UF1O_Y=(CV1_TrigLine_Y+CV1_EndLine_Y)/2000
- 
- WritePoint("UF1O", "X",   UF1O_X)
- WritePoint("UF1O", "Y",   UF1O_Y)
- 
- WritePoint("UF1X", "X",   UF1O_X+10)
- WritePoint("UF1X", "Y",   UF1O_Y)
- 
- WritePoint("UF1Y", "X",   UF1O_X)
- WritePoint("UF1Y", "Y",   UF1O_Y+10)
- 
- --SetUF(1, "UF1O", "UF1X", "UF1Y")
- 
-end
 
 --- <summary>UF初始化程序，原點為觸髮線和終止線中點，方向平行大地坐標系，高度為0</summary>
 --- <argument name=" "> 輸入UF編號、起始線XY和終止線xy</argument>
 function UFReset(UFIdx,CV1_TrigLine_X,CV1_TrigLine_Y,CV1_EndLine_X,CV1_EndLine_Y)
 local PoX = 0.5*( CV1_TrigLine_X +CV1_EndLine_X )/1000
 local PoY = 0.5*( CV1_TrigLine_Y +CV1_EndLine_Y )/1000
-local PxX = PoX + 10
-local PxY = PoY
-local PxyX = PxX
-local PxyY = PxY + 10
+local PxX = PoX + 10*math.cos(AngleOffset* math.pi/ 180.0)
+local PxY = PoY-10*math.sin(AngleOffset* math.pi/ 180.0)
+local PxyX = PoX + 10*math.sin(AngleOffset* math.pi/ 180.0)
+local PxyY = PxY + 10*math.cos(AngleOffset* math.pi/ 180.0)
+
 --SetGlobalPoint(Point, PointName, X data, Y data, Z data, RZ data, Hand, UF, TF, JRC)
 SetGlobalPoint(1, "GL_P0", PoX, PoY, 0, 0, 0, 0, 1, {0,0,0,1,0,0,0,4})
 SetGlobalPoint(2, "GL_Px", PxX, PxY, 0, 0, 0, 0, 1, {0,0,0,1,0,0,0,4})
@@ -427,8 +411,11 @@ function  GetSectionParamFromPC()
 	SectionOffsetZup={}
 	SectionPointsNum={}
 	SectionIsDisable={}
-	SectionEnable=ReadModbus(0x30FC , "DW")    --0×30FC 分段设置啟用，啟用為1，未啟用為2
-	SectionNum=ReadModbus(0x30FE , "DW")    --0×30FE 分段设置数量 
+	GlueTime={}
+	GlueSpeed={}
+	SafeH={}
+	SectionEnable = ReadModbus(0x30FC , "DW")    --0×30FC 分段设置啟用，啟用為1，未啟用為2
+	SectionNum = ReadModbus(0x30FE , "DW")    --0×30FE 分段设置数量 
 	if SectionEnable == 1 then
         for i=0,SectionNum-1 do
             SectionOffsetX[i+1]=ReadModbus(0x3100+i*16+0 , "DW")/1000
@@ -439,6 +426,29 @@ function  GetSectionParamFromPC()
             SectionGlueSpeed[i+1]=ReadModbus(0x3100+i*16+10 , "DW")
             SectionPointsNum[i+1]=ReadModbus(0x3100+i*16+12 , "DW")
             SectionIsDisable[i+1]=ReadModbus(0x3100+i*16+14 , "DW")
+			--設定時間檢查，需要在-0.1s~5s內，否則使用默認時間0.1s
+			TimeChk=DateCheck(SectionGlueTime[i+1],5,-0.1)
+			if TimeChk == 1 then
+				GlueTime[i+1]=SectionGlueTime[i+1]+DefaultGlueTime
+			else
+				GlueTime[i+1]=DefaultGlueTime
+			end
+			--設定速度檢查，需要在-2000~0內，否則使用默認時間2000
+			SpeedChk=DateCheck(SectionGlueSpeed[i+1],0,-2000)
+			if SpeedChk == 1 then
+				GlueSpeed[i+1]=SectionGlueSpeed[i+1]+DefaultGlueSpeed
+			else
+				GlueSpeed[i+1]=DefaultGlueSpeed
+			end
+			--設定高度檢查，需要在-200~0內，否則使用默認安全高度-1
+			ZChk=DateCheck(SectionOffsetZ[i+1],0,-200)
+			ZupChk=DateCheck(SectionOffsetZ[i+1]+SectionOffsetZup[i+1],0,-200)
+			if ZChk == 1 and ZupChk == 1 then
+				SafeH[i+1]=SectionGlueSpeed[i+1]+DefaultGlueSpeed
+			else
+				SafeH[i+1]=-1
+			end			
+			
         end   
     end
 end
@@ -452,12 +462,12 @@ function ReadTeachSinglePointFromPC()
     	WritePoint(0100+i, "X", ReadModbus(0x3200+i*16+0, "DW")/1000)
         WritePoint(0100+i, "Y", ReadModbus(0x3200+i*16+2, "DW")/1000)
         WritePoint(0100+i, "Z", ReadModbus(0x3200+i*16+4, "DW")/1000)
-        SingleGlue_Zup[i]=ReadModbus(0x3200+i*16+6, "DW")/1000
+        SingleGlue_Zup[i+1]=ReadModbus(0x3200+i*16+6, "DW")/1000
         WritePoint(0100+i, "RZ", ReadModbus(0x3200+i*16+8,"DW")/1000)
         WritePoint(0100+i, "H", ReadModbus(0x3200+i*16+10, "DW"))
         WritePoint(0100+i, "UF",1) --默认UF1
         WritePoint(0100+i, "TF",1) --默认TF1
-        glue_time[i] = ReadModbus(0x3200+i*16+12, "DW")/1000 
+        glue_time[i+1] = ReadModbus(0x3200+i*16+12, "DW")/1000 		
     end 
 end
 
@@ -471,12 +481,12 @@ function ReadTeachContinuePointFromPC()
         WritePoint(0200+i, "X", ReadModbus(0x3300+i*16+0, "DW")/1000)
         WritePoint(0200+i, "Y", ReadModbus(0x3300+i*16+2, "DW")/1000)
         WritePoint(0200+i, "Z", ReadModbus(0x3300+i*16+4, "DW")/1000)
-        ContinueGlue_Zup[i]=ReadModbus(0x3300+i*16+6, "DW")/1000
+        ContinueGlue_Zup[i+1]=ReadModbus(0x3300+i*16+6, "DW")/1000
         WritePoint(0200+i, "RZ", ReadModbus(0x3300+i*16+8,"DW")/1000)
         WritePoint(0200+i, "H", ReadModbus(0x3300+i*16+10, "DW"))
         WritePoint(0200+i, "UF",1) --默认UF1
         WritePoint(0200+i, "TF",1) --默认TF1
-        glue_speed[i] = ReadModbus(0x3300+i*16+12, "DW") 
+        glue_speed[i+1] = ReadModbus(0x3300+i*16+12, "DW") 
     end 
 end
 
@@ -505,7 +515,7 @@ function CheckGlueSectionFromPC()
         return 0
     else
         for i = 1,ListNumber do
-        	if(PointNum[i][2]-PointNum[i][1]+1~=SectionPointsNum[i]) then
+        	if(PointNum[i][2]-PointNum[i][1]+1 ~= SectionPointsNum[i]) then
         		UserPrint("ListRange is Error")
                 return 0
         	end
@@ -519,44 +529,44 @@ function GlueWithPCParam()
 	for i = 1,ListNumber do
         	if(SectionIsDisable[i]==1) then
         		---如果该分段禁用，则不做动作
-        	else
+        	else        	
                 Num=PointNum[i][1]
-                MovL(PointNum[i][1]+Z(SectionOffsetZup[i]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至第i段轨迹初始点上方
-                --UserPrint("SectionOffsetZ[i]=",SectionOffsetZ[i])
-                --UserPrint("SectionOffsetZup[i]=",SectionOffsetZup[i])
-                
+				--移动至第i段轨迹初始点上方
+                MovL(PointNum[i][1]+Z(SectionOffsetZup[i]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)
+                --移动至第i段轨迹初始点
                 MovL(PointNum[i][1],DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至第i段轨迹初始点
-                 --MovL(PointNum[i][1]+X(SectionOffsetX[i])+Y(SectionOffsetY[i])+Z(SectionOffsetZ[i]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)
+				--在初始点打开胶枪
+				if WorkFlg == 1 then
+					DO(GlueDO,"ON")
+				end
+                DELAY(OpenGlueDelay) --开胶延时  
+				
+				--判断轨迹类型，确定下一步的动作
                 if(PointNum[i][2]-PointNum[i][1]==0) then   -- 单点  
-                    if WorkFlg == 1 then
-                        DO(GlueDO,"ON")
-                    end
-                    DELAY(SectionGlueTime[i])--开胶时间
-                    --UserPrint("DefaultGlueTime=",DefaultGlueTime)
-                     --UserPrint("SectionGlueTime[i]=",SectionGlueTime[i])
+                    --如果是单点，那就延时一个单点的时间
+					DELAY(GlueTime[i])--出胶时间
                 else
-                    if WorkFlg == 1 then
-                        DO(GlueDO,"ON")
-                    end
-                    DELAY(OpenGlueDelay)   --开胶延时
+					--不是单点就默认是连续轨迹，先延时开胶，再运行轨迹，最后多走一段距离实现轨迹闭合
                     while Num <= PointNum[i][2] do 
                         --可以根据i进行分段设置不同速度、加速度、跳点个数等参数
-                        MovL(Num,"PASS",SectionGlueSpeed[i],DefaultGlueAcc,DefaultGlueDec)
+                        MovL(Num,"PASS",GlueSpeed[i],DefaultGlueAcc,DefaultGlueDec)
                         Num = Num + LineHopsNum
                     end
+					
                     if(SectionIsClose[i]==1) then   --如果是闭合曲线，则多走一定数量的点位，该参数视现场情况确定是否需要开出来
-                        Num=PointNum[i][1]
-                        while Num <= PointNum[i][1]+PassPointNum do 
+                        Num = PointNum[i][1]
+                        while Num <= PointNum[i][1]+PassPointNum-1 and Num <= PointNum[i][2] do 
                         --可以根据i进行分段设置不同速度、加速度、跳点个数等参数
-                            MovL(Num,"PASS",SectionGlueSpeed[i],DefaultGlueAcc,DefaultGlueDec)
+                            MovL(Num,"PASS",GlueSpeed[i],DefaultGlueAcc,DefaultGlueDec)
                             Num = Num + LineHopsNum
                         end
                     end
                 end
+				
                 --第i段轨迹结束关胶等处理
                 DO(GlueDO, "OFF") 
                 DELAY(CloseGlueDelay) --关胶延时
-                MovJ(3,(SectionOffsetZ[i]+SectionOffsetZup[i])) 
+                MovL(PointNum[i][2]+Z(SectionOffsetZup[i]),DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)
             end
         	
     end
@@ -566,22 +576,22 @@ end
 function GlueWithPCteach()
 	if(Sinlept_sum>0) then
 		for pt_now=0,Sinlept_sum-1 do
-			MovL(0100 + pt_now +Z(SingleGlue_Zup[pt_now]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至第i段轨迹初始点上方
+			MovL(0100 + pt_now +Z(SingleGlue_Zup[pt_now+1]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至第i段轨迹初始点上方
             MovL(0100 + pt_now,"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至第i段轨迹初始点
             DELAY(OpenGlueDelay)   --开胶延时
 			if WorkFlg == 1 then
                 DO(GlueDO,"ON")
             end
-            DELAY(glue_time[pt_now]) 			                   
+            DELAY(glue_time[pt_now+1]) 			                   
             DO(GlueDO, "OFF")
             --第i段轨迹结束关胶等处理
             DO(GlueDO, "OFF") 
             DELAY(CloseGlueDelay) --关胶延时
-            MovJ(3,safeH) 
+           MovL(0100 + pt_now +Z(SingleGlue_Zup[pt_now+1]),DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec) 
         end	
 	end
     if(Continuept_sum>0) then
-    	MovL(0200 +Z(ContinueGlue_Zup[0]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至轨迹初始点上方
+    	MovL(0200 +Z(ContinueGlue_Zup[1]),"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至轨迹初始点上方
         MovL(0200 ,"PASS",DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至轨迹初始点
         if WorkFlg == 1 then
             DO(GlueDO,"ON")
@@ -593,90 +603,71 @@ function GlueWithPCteach()
         end
         DO(GlueDO, "OFF")            --軌跡執行完畢膠閥關閉  
 		DELAY(CloseGlueDelay) --关胶延时
-		MovJ(3,safeH) 
+		MovL(0200 +Z(ContinueGlue_Zup[1]),DefaultGlueSpeed,DefaultGlueAcc,DefaultGlueDec)--移动至轨迹初始点上方 
 	end
 end
 
 
 --=============================参数初始化區域======================================
-RobotServoOff()
-CVT_ChangeMotion()
-OnceDateFromPC()
-GetStandbyPt()
-GetCraftParam()
+RobotServoOff()	--关使能
+CVT_ChangeMotion()	--切换CVT模式
+GetCVTParam()	--读取CVT参数
+GetStandbyPt()	--读取待机点
+GetCraftParam()	--读取工艺参数
+GetSectionParamFromPC()	--读取分段参数
+ReadTeachSinglePointFromPC()	--读取示教的单点
+ReadTeachContinuePointFromPC()	--读取示教的连续轨迹
 
---ResetUF1()
-
-GetSectionParamFromPC()
-ReadTeachSinglePointFromPC()
-ReadTeachContinuePointFromPC()
-GetSlaveIP()
-
-CVT1Set()
+CVT1Set()	--CVT初始化
+	--UF初始化
+UFReset(CV_cvtUFIdx,CV1_TrigLine_X,CV1_TrigLine_Y,CV1_EndLine_X,CV1_EndLine_Y)	
 
 --=============運動參數和模式設置========================================
-RobotServoOff()
-OnceDateFromPC()
---GetStandbyPt()
---GetCVTtestParam()
 
-
-GetSlaveIP()
-CVT1Set()
 DELAY(0.02)
-SafetyMode(5)
-
-
-PassMode("DEC")
-SetOverlapTime(50)
-
-RobotServoOn()
-ChangeUF(0)
-DELAY(0.05)
-ChangeUF(0)
-DELAY(0.05)
-DELAY(0.1)
-MovJ(3,-5)
-DELAY(0.1)
-SpdL(300)
-AccL(5000)
-DecL(5000)
-
-MovP(1001)         -- 预设待机点
-
-SpdJ(RunSpeedJ)
-AccJ(80.0)
-DecJ(80.0)
-
-SpdL(RunSpeedL)
-AccL(10000)
-DecL(10000)
-
+SafetyMode(5)	--设定模式5，停机之后关闭IO
+PassMode("DEC")	--设定叠合模式为速度叠合
+SetOverlapTime(50)	--设定叠合阈值，0~100%，越大叠合效果越好，但到位精度会更差
 Accur("ROUGH")
 SetAccur(3,1280000)
 SetAccur(4,1280000)
 
+--韧体BUG，偶发TF、UF切换失败，先主动切一次
+ChangeUF(1)
+ChangeTF(1)
+DELAY(0.05)
+ChangeUF(0)
+ChangeTF(0)
+DELAY(0.05)
 
- UFReset(CV_cvtUFIdx,CV1_TrigLine_X,CV1_TrigLine_Y,CV1_EndLine_X,CV1_EndLine_Y)
+--低速回待机点
+SpdL(300)
+AccL(5000)
+DecL(5000)
+SpdJ(30.0)
+AccJ(30.0)
+DecJ(30.0)
+
+RobotServoOn()
+MovJ(3,-5)	--移动到安全高度
+DELAY(0.1)
+MovP(1001)         -- 预设待机点
 
 
---================运行轨迹================================================
+--调速到生产速度
+SpdJ(RunSpeedJ*100)
+AccJ(RunSpeedJ*100)
+DecJ(RunSpeedJ*100)
 
+SpdL(RunSpeedL*2000)
+AccL(RunSpeedL*25000)
+DecL(RunSpeedL*25000)
 
-P0x,P0y,P0z = GetUF(1)
-safeH = P0z+SafeHset
-if safeH>0 then
-	safeH = 0
-end
-
-Output=0
-GlueDO= WorkDO
-
-
-
+--================轨迹处理================================================
 CheckResult = CheckGlueSectionFromPC()
-if(CheckResult==0) then         ---如果上位机发送的分段数量和本程序内的分段数量不符，则停止手臂程序
-    error_num =  error_num + 1
+if(CheckResult == 0) then         ---如果上位机发送的分段数量和本程序内的分段数量不符，则停止手臂程序
+    error_num = ReadModbus(0x3030,"DW")
+    error_num = error_num + 1
     WriteModbus(0x3030,"DW",error_num)
     UserPrint("\n","！！！出現錯誤數據！！錯誤第：",error_num,"次") 
     if error_num >= 59999 then   --防止寄存器數值爆炸
@@ -684,6 +675,7 @@ if(CheckResult==0) then         ---如果上位机发送的分段数量和本程
     end   
     PAUSE()
 end
+
 SectionIsClose={}
 for i = 1,ListNumber do
     Num=PointNum[i][1]
@@ -694,11 +686,13 @@ for i = 1,ListNumber do
 	end
 end  
 
+--================运行轨迹================================================
 -- 機器人塗膠
 while true do
     cvtuIdx1= 1
     --確認啟動追隨條件是否滿足
     while CVT_ChkBotTrigCond(cvtuIdx1) == 0 do  end
+	--UserPrint("QueueCnt=",QueueCnt,"\tQueueIdx=",QueueIdx,"\tWorkInfoX=",WorkInfoX,"\tWorkInfoY=",WorkInfoY)
         TimerOn()
         CVT_VelIn(cvtuIdx1)
         CVT_ObjDoneFlag(cvtuIdx1, 0)
@@ -716,20 +710,22 @@ while true do
         CVT_ObjDoneFlag(cvtuIdx1, 1)
         ----停止追隨輸送帶1
         CT = TimerRead()
-        UserPrint("CT=",CT)
-		UserPrint("QueueCnt=",QueueCnt,"\tQueueIdx=",QueueIdx,"\tWorkInfoX=",WorkInfoX,"\tWorkInfoY=",WorkInfoY)
+        --UserPrint("CT=",CT)
         --加工完成復位，如果有料進來則直接抬起後進入追蹤，
         -- 如果沒有料進來則回到待機點
         if CVT_ChkBotTrigCond(cvtuIdx1) == 0 then
-        	ChangeUF(1)
+        	--韧体BUG，偶发TF、UF切换失败，先主动切一次
+			ChangeUF(1)
+			ChangeTF(1)
         	ChangeUF(0)
+			ChangeTF(0)
             MovP(1001)-- 待机点
         else
             MovJ(3,-20)
         end
     
     --==============================產能、CT統計===========================================
-        --DO(12,"OFF")             --產能計算復歸
+
         --產能計數，超過限額則自動置為1，否則加1
         PickNum = ReadModbus(0x3000,"DW")
         Chkflg = DateCheck(PickNum,4000000000,0)
@@ -739,7 +735,7 @@ while true do
         else
             WriteModbus(0x3000,"W",1)
         end
-            WriteModbus(0x300B,"W",CT) 
+        WriteModbus(0x300B,"W",CT) 
 --=================================================================================
  end
 
